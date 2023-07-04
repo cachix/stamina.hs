@@ -6,36 +6,50 @@
 
 Inspired by https://stamina.hynek.me/en/stable/api.html
 -}
-module Stamina (retry, retryOnException, retryOnOutput, RetrySettings(..), defaultRetrySettings, RetryStatus(..)) where
+module Stamina
+  ( retry,
+    retryOnException,
+    retryOnOutput,
+    RetrySettings (..),
+    defaultRetrySettings,
+    RetryStatus (..),
+  )
+where
 
-data RetrySettings = RetrySettings {
-  initialRetryStatus :: RetryStatus, -- Initial status of the retry, useful to override when resuming a retry
-  attempts :: Int, -- Maximum number of attempts. Can be combined with timeout. Default to 10.
-  timeout :: Double, -- Maximum time for all retries. Can be combined with attempts. Default to 45.0.
-  backoffInitialDelay :: Double, -- Minimum backoff in seconds before the first retry. Default to 0.1.
-  backoffMaxDelay :: Double, -- Maximum backoff in seconds between retries at any time. Default to 5.0.
-  backoffJitter :: Double, -- Maximum jitter that is added to retry back-off delays (the actual jitter added is a random number between 0 and backoffJitter). Default to 1.0.
-  backoffExpBase :: Double -- The exponential base used to compute the retry backoff. Default to 2.0.
-} deriving (Show)
+import Control.Exception (Exception)
+import Control.Monad.IO.Class (MonadIO)
+
+data RetrySettings = RetrySettings
+  { initialRetryStatus :: RetryStatus, -- Initial status of the retry, useful to override when resuming a retry
+    maxAttempts :: Int, -- Maximum number of attempts. Can be combined with timeout. Default to 10.
+    timeout :: Double, -- Maximum time for all retries. Can be combined with attempts. Default to 45.0.
+    backoffInitialDelay :: Double, -- Minimum backoff in seconds before the first retry. Default to 0.1.
+    backoffMaxDelay :: Double, -- Maximum backoff in seconds between retries at any time. Default to 5.0.
+    backoffJitter :: Double, -- Maximum jitter that is added to retry back-off delays (the actual jitter added is a random number between 0 and backoffJitter). Default to 1.0.
+    backoffExpBase :: Double -- The exponential base used to compute the retry backoff. Default to 2.0.
+  }
+  deriving (Show)
 
 -- Tracks the status of a retry
 -- All fields will be zero if no retries have been attempted yet.
-data RetryStatus = RetryStatus {
-  attempts :: Int,
-  delay :: Int,
-  totalDelay :: Int,
-} deriving (Show)
+data RetryStatus = RetryStatus
+  { attempts :: Int,
+    delay :: Int,
+    totalDelay :: Int
+  }
+  deriving (Show)
 
 defaultRetrySettings :: RetrySettings
-defaultRetrySettings = RetrySettings {
-  initialRetryStatus=RetryStatus { attempts=0, delay=0, totalDelay=0 },
-  attempts=10,
-  timeout=45.0,
-  backoffInitialDelay=0.1,
-  backoffMaxDelay=5.0,
-  backoffJitter=1.0,
-  backoffExpBase=2.0
-}
+defaultRetrySettings =
+  RetrySettings
+    { initialRetryStatus = RetryStatus {attempts = 0, delay = 0, totalDelay = 0},
+      maxAttempts = 10,
+      timeout = 45.0,
+      backoffInitialDelay = 0.1,
+      backoffMaxDelay = 5.0,
+      backoffJitter = 1.0,
+      backoffExpBase = 2.0
+    }
 
 data RetryAction = Skip | Retry | RetryAfter Int
 

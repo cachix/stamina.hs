@@ -4,3 +4,8 @@ packages:
 - .
 
 extra-deps: []
+
+# Use the GHC provided by devenv
+system-ghc: true
+nix:
+  enable: false
