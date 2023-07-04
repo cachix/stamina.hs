@@ -2,7 +2,7 @@
 
 [![Hackage](https://img.shields.io/hackage/v/stamina.svg?style=flat)](https://hackage.haskell.org/package/stamina)
 
-[![GitHub](https://img.shields.io/github/license/stamina/stamina.hs.svg?style=flat)](
+[![GitHub](https://img.shields.io/github/license/cachix/stamina.hs.svg?style=flat)](https://github.com/cachix/stamina.hs/actions)
 
 ## Design goals
 
