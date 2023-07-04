@@ -6,7 +6,7 @@
 
 Inspired by https://stamina.hynek.me/en/stable/api.html
 -}
-module Stamina (retry, retryOnExceptions, RetrySettings(..), defaultRetrySettings, RetryStatus(..)) where
+module Stamina (retry, retryOnException, retryOnOutput, RetrySettings(..), defaultRetrySettings, RetryStatus(..)) where
 
 data RetrySettings = RetrySettings {
   initialRetryStatus :: RetryStatus, -- Initial status of the retry, useful to override when resuming a retry
@@ -50,12 +50,12 @@ data RetryAction = Skip | Retry | RetryAfter Int
 
 -- If all retries fail, the last exception is let through.
 retry :: MonadIO m => RetrySettings -> (RetryStatus -> m a) -> m a
-retry = undefined
+retry settings action = undefined
 
 -- Same as retry, but only retry on the given exceptions.
-retryOnExceptions :: (Exception e, MonadIO m) => RetrySettings -> (e -> m RetryAction) -> (RetryStatus -> m a) -> m a
-retryOnExceptions = undefined
+retryOnException :: (Exception e, MonadIO m) => RetrySettings -> (e -> m RetryAction) -> (RetryStatus -> m a) -> m a
+retryOnException settings willRetry action = undefined
 
--- retry by examining function output
+-- Same as retry, but only retry if the given predicate returns True on the output.
 retryOnOutput :: MonadIO m => RetrySettings -> (RetryStatus -> a -> m RetryAction) -> (RetryStatus -> m a) -> m a
-retryOnOutput = undefined
+retryOnOutput settings willRetry action = undefined
