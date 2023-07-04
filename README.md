@@ -1,8 +1,6 @@
 # Stamina.hs
 
-[![Hackage](https://img.shields.io/hackage/v/stamina.svg?style=flat)](https://hackage.haskell.org/package/stamina)
-
-[![GitHub](https://img.shields.io/github/license/cachix/stamina.hs.svg?style=flat)](https://github.com/cachix/stamina.hs/actions)
+[![Hackage](https://img.shields.io/hackage/v/stamina.svg?style=flat)](https://hackage.haskell.org/package/stamina) ![CI status](https://github.com/cachix/stamina.hs/actions/workflows/ci.yml/badge.svg)
 
 ## Design goals
 
