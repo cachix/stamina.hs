@@ -43,8 +43,9 @@ data RetryAction = Skip | Retry | RetryAfter Int
 --
 -- The backoff delays between retries grow exponentially plus a random jitter.
 -- The backoff for retry attempt number _attempt_ is computed as:
-
--- backoff_initial * backoff_exp_base ** (attempt - 1) + random(0, backoff_jitter)
+--
+--    backoffInitial * backoffExpBase ** (attempt - 1) + random(0, backoffJitter)
+--
 -- Since x**0 is always 1, the first backoff is within the interval [backoff_initial,backoff_initial+backoff_jitter]. Thus, with default values between 0.1 and 1.1 seconds.
 
 -- If all retries fail, the last exception is let through.
