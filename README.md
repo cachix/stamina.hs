@@ -1,27 +1,27 @@
 # Stamina.hs
 
-**WIP: doesn't work yet, in design phase.**
+**WIP: doesn't work yet, in a design phase.**
 
 [![Hackage](https://img.shields.io/hackage/v/stamina.svg?style=flat)](https://hackage.haskell.org/package/stamina) ![CI status](https://github.com/cachix/stamina.hs/actions/workflows/ci.yml/badge.svg)
 
 A retry Haskell library for humans:
 
-- Exponential backoff with jitter between retries.
-- Limit the number of retries and total time.
-- `Stamina.HTTP` for retrying retriable HTTP Exceptions
-- Introspectable retry state for logging
-
-## Design goals
-
-- Defaults that make sense most of the time.
-- Simple interface.
-- Documented.
+- **Exponential backoff** with **jitter** between retries.
+- Limit the **attempts** of retries and **total** time.
+- `Stamina.HTTP` for retrying retriable `Network.HTTP.Client` exceptions.
+- Introspectable retry state for logging using `RetryStatus`.
 
 ## API
 
 ```haskell
 
 defaultRetrySettings :: RetrySettings
+
+data RetryStatus = RetryStatus
+  { attempts :: Int,
+    delay :: Int,
+    totalDelay :: Int
+  }
 
 -- Retry on all sync exceptions
 retry :: MonadIO m => RetrySettings -> (RetryStatus -> m a) -> m a
@@ -40,7 +40,7 @@ import qualified Stamina
 
 main :: IO ()
 main = do
-    Stamina.retry Stamina.defaultRetrySettings $ \retryStatus -> do
+    Stamina.retry Stamina.defaults $ \retryStatus -> do
         ... monadic logic that raises exceptions
 
 ```
