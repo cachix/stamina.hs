@@ -24,10 +24,17 @@ data RetryStatus = RetryStatus
   }
 
 -- Retry on all sync exceptions
-retry :: MonadIO m => RetrySettings -> (RetryStatus -> m a) -> m a
+retry :: MonadIO m 
+      => RetrySettings 
+      -> (RetryStatus -> m a)
+      -> m a
 
 -- Retry on specific exceptions
-retryOnExceptions :: (Exception e, MonadIO m) => RetrySettings -> [Handler RetryAction] -> (RetryStatus -> m a) -> m a
+retryOnExceptions :: (Exception e, MonadIO m) 
+                  => RetrySettings 
+                  -> [Handler RetryAction] 
+                  -> (RetryStatus -> m a)
+                  -> m a
 
 data RetryAction = Skip | Retry | RetryAfter Int
 ```
@@ -56,4 +63,4 @@ main = do
 ## Credits
 
 - Heavily inspired by [stamina for Python](https://stamina.hynek.me/en/stable/tutorial.html#retries).
-- [retry](https://github.com/Soostone/retry) as case study for what needs to be supported
+- [retry](https://github.com/Soostone/retry) as case study for what needs to be supported.
