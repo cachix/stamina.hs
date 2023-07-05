@@ -8,15 +8,15 @@ Inspired by https://stamina.hynek.me/en/stable/api.html
 -}
 module Stamina
   ( retry,
-    retryOnException,
-    retryOnOutput,
+    retryOnExceptions,
     RetrySettings (..),
     defaultRetrySettings,
+    RetryAction (..),
     RetryStatus (..),
   )
 where
 
-import Control.Exception (Exception)
+import Control.Exception (Exception, Handler)
 import Control.Monad.IO.Class (MonadIO)
 
 data RetrySettings = RetrySettings
@@ -67,9 +67,5 @@ retry :: MonadIO m => RetrySettings -> (RetryStatus -> m a) -> m a
 retry settings action = undefined
 
 -- Same as retry, but only retry on the given exceptions.
-retryOnException :: (Exception e, MonadIO m) => RetrySettings -> (e -> m RetryAction) -> (RetryStatus -> m a) -> m a
-retryOnException settings willRetry action = undefined
-
--- Same as retry, but only retry if the given predicate returns True on the output.
-retryOnOutput :: MonadIO m => RetrySettings -> (RetryStatus -> a -> m RetryAction) -> (RetryStatus -> m a) -> m a
-retryOnOutput settings willRetry action = undefined
+retryOnExceptions :: MonadIO m => RetrySettings -> [Handler RetryAction] -> (RetryStatus -> m a) -> m a
+retryOnExceptions settings handlers action = undefined
