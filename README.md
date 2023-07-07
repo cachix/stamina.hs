@@ -12,13 +12,16 @@ A retry Haskell library for humans:
 ## API
 
 ```haskell
+import Control.Exception (Exception, Handler)
+import Control.Monad.IO.Class (MonadIO)
+import Data.Time.Clock (DiffTime)
 
-defaultRetrySettings :: RetrySettings
+defaults :: RetrySettings
 
 data RetryStatus = RetryStatus
   { attempts :: Int,
-    delay :: Int,
-    totalDelay :: Int
+    delay :: DiffTime,
+    totalDelay :: DiffTime
   }
 
 -- Retry on all sync exceptions
