@@ -73,8 +73,8 @@ library
     -- other-extensions:
 
     -- Other library packages from which modules are imported.
-    build-depends:    base, http-client
-
+    build-depends:    base, http-client, time 
+    
     -- Directories containing source files.
     hs-source-dirs:   src
 

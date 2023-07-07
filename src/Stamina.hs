@@ -10,7 +10,7 @@ module Stamina
   ( retry,
     retryOnExceptions,
     RetrySettings (..),
-    defaultRetrySettings,
+    defaults,
     RetryAction (..),
     RetryStatus (..),
   )
@@ -18,15 +18,16 @@ where
 
 import Control.Exception (Exception, Handler)
 import Control.Monad.IO.Class (MonadIO)
+import Data.Time.Clock (DiffTime)
 
 data RetrySettings = RetrySettings
   { initialRetryStatus :: RetryStatus, -- Initial status of the retry, useful to override when resuming a retry
-    maxAttempts :: Int, -- Maximum number of attempts. Can be combined with timeout. Default to 10.
-    timeout :: Double, -- Maximum time for all retries. Can be combined with attempts. Default to 45.0.
-    backoffInitialDelay :: Double, -- Minimum backoff in seconds before the first retry. Default to 0.1.
-    backoffMaxDelay :: Double, -- Maximum backoff in seconds between retries at any time. Default to 5.0.
+    maxAttempts :: Int, -- Maximum number of attempts. Can be combined with a timeout. Default to 10.
+    maxTime :: DiffTime, -- Maximum time for all retries. Can be combined with attempts. Default to 45.0.
+    backoffInitialRetryDelay :: DiffTime, -- Minimum backoff before the first retry. Default to 0.1.
+    backoffMaxRetryDelay :: DiffTime, -- Maximum backoff between retries at any time. Default to 5.0.
     backoffJitter :: Double, -- Maximum jitter that is added to retry back-off delays (the actual jitter added is a random number between 0 and backoffJitter). Default to 1.0.
-    backoffExpBase :: Double -- The exponential base used to compute the retry backoff. Default to 2.0.
+    backoffExpBase :: Double -- The exponential base used to compute the retry backoff. Defaults to 2.0.
   }
   deriving (Show)
 
@@ -34,19 +35,19 @@ data RetrySettings = RetrySettings
 -- All fields will be zero if no retries have been attempted yet.
 data RetryStatus = RetryStatus
   { attempts :: Int,
-    delay :: Int,
-    totalDelay :: Int
+    delay :: DiffTime,
+    totalDelay :: DiffTime
   }
   deriving (Show)
 
-defaultRetrySettings :: RetrySettings
-defaultRetrySettings =
+defaults :: RetrySettings
+defaults =
   RetrySettings
     { initialRetryStatus = RetryStatus {attempts = 0, delay = 0, totalDelay = 0},
       maxAttempts = 10,
-      timeout = 45.0,
-      backoffInitialDelay = 0.1,
-      backoffMaxDelay = 5.0,
+      maxTime = 45.0,
+      backoffInitialRetryDelay = 0.1,
+      backoffMaxRetryDelay = 5.0,
       backoffJitter = 1.0,
       backoffExpBase = 2.0
     }
