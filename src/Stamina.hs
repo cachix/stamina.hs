@@ -53,9 +53,9 @@ defaults =
     }
 
 data RetryAction = 
-   Skip -- Propagated the exception.
+   Skip -- Propagate the exception.
  | Retry  -- Retry with the delay according to the settings.
- | RetryDelay DiffTime -- Retr after the given delay.
+ | RetryDelay DiffTime -- Retry after the given delay.
 
 -- | Retry on all sync exceptions, async exceptions will still be thrown.
 --
