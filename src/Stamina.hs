@@ -52,7 +52,10 @@ defaults =
       backoffExpBase = 2.0
     }
 
-data RetryAction = Skip | Retry | RetryAfter Int
+data RetryAction = 
+   Skip -- Propagated the exception.
+ | Retry  -- Retry with the delay according to the settings.
+ | RetryDelay DiffTime -- Retr after the given delay.
 
 -- | Retry on all sync exceptions, async exceptions will still be thrown.
 --
