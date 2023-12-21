@@ -8,6 +8,7 @@ A retry Haskell library for humans:
 - Limit the **attempts** of retries and **total** time.
 - `Stamina.HTTP` for retrying retriable `Network.HTTP.Client` exceptions.
 - Introspectable retry state for logging using `RetryStatus`.
+- Support resetting the retry state when the action is long-running and an attempt works.
 
 ## API
 
@@ -21,7 +22,8 @@ defaults :: RetrySettings
 data RetryStatus = RetryStatus
   { attempts :: Int,
     delay :: DiffTime,
-    totalDelay :: DiffTime
+    totalDelay :: DiffTime,
+    reset :: IO ()
   }
 
 -- Retry on all sync exceptions
@@ -37,7 +39,10 @@ retryOnExceptions :: (Exception e, MonadIO m)
                   -> (RetryStatus -> m a)
                   -> m a
 
-data RetryAction = Skip | Retry | RetryAfter Int
+data RetryAction = 
+   Skip -- Propagate the exception.
+ | Retry  -- Retry with the delay according to the settings.
+ | RetryDelay DiffTime -- Retry after the given delay.
 ```
 
 ## Example

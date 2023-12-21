@@ -1,11 +1,3 @@
-{- A retry library should be able to:
-
-- Wait between your retries: this is called a backoff.
-- Not retry simultaneously with all your clients, so you must introduce randomness into your backoff: a jitter.
-- Not retry forever. Sometimes a remote service is down indefinitely, and you must deal with it.
-
-Inspired by https://stamina.hynek.me/en/stable/api.html
--}
 module Stamina
   ( retry,
     retryOnExceptions,
@@ -18,6 +10,7 @@ where
 
 import Control.Exception (Exception, Handler)
 import Control.Monad.IO.Class (MonadIO)
+import Control.Retry qualified as Retry
 import Data.Time.Clock (DiffTime)
 
 data RetrySettings = RetrySettings
@@ -34,16 +27,24 @@ data RetrySettings = RetrySettings
 -- Tracks the status of a retry
 -- All fields will be zero if no retries have been attempted yet.
 data RetryStatus = RetryStatus
-  { attempts :: Int,
-    delay :: DiffTime,
-    totalDelay :: DiffTime
+  { attempts :: Int, -- Number of retry attempts so far.
+    delay :: DiffTime, -- Delay before the next retry.
+    totalDelay :: DiffTime, -- Total delay so far.
+    reset :: IO () -- Reset the retry status to the initial state.
   }
   deriving (Show)
 
 defaults :: RetrySettings
 defaults =
+  -- TODO: Implement reset
   RetrySettings
-    { initialRetryStatus = RetryStatus {attempts = 0, delay = 0, totalDelay = 0},
+    { initialRetryStatus =
+        RetryStatus
+          { attempts = 0,
+            delay = 0,
+            totalDelay = 0,
+            reset = pure ()
+          },
       maxAttempts = 10,
       maxTime = 45.0,
       backoffInitialRetryDelay = 0.1,
@@ -52,10 +53,10 @@ defaults =
       backoffExpBase = 2.0
     }
 
-data RetryAction = 
-   Skip -- Propagate the exception.
- | Retry  -- Retry with the delay according to the settings.
- | RetryDelay DiffTime -- Retry after the given delay.
+data RetryAction
+  = Skip -- Propagate the exception.
+  | Retry -- Retry with the delay according to the settings.
+  | RetryDelay DiffTime -- Retry after the given delay.
 
 -- | Retry on all sync exceptions, async exceptions will still be thrown.
 --
