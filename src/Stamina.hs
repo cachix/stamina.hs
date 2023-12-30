@@ -44,9 +44,9 @@ data RetryStatus = RetryStatus
     lastException :: Maybe SomeException -- The last exception that was thrown.
   }
 
-defaults :: IO RetrySettings
+defaults :: (MonadIO m) => m RetrySettings
 defaults = do
-  resetMVar <- newMVar ()
+  resetMVar <- liftIO $ newMVar ()
   return $
     RetrySettings
       { initialRetryStatus =

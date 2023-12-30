@@ -1,24 +1,33 @@
 # Stamina
 
-[![Project Status: Concept – Minimal or no implementation has been done yet, or the repository is only intended to be a limited example, demo, or proof-of-concept.](https://www.repostatus.org/badges/latest/concept.svg)](https://www.repostatus.org/#concept) [![Hackage](https://img.shields.io/hackage/v/stamina.svg?style=flat)](https://hackage.haskell.org/package/stamina) ![CI status](https://github.com/cachix/stamina.hs/actions/workflows/ci.yml/badge.svg)
+[![Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#concept) [![Hackage](https://img.shields.io/hackage/v/stamina.svg?style=flat)](https://hackage.haskell.org/package/stamina) ![CI status](https://github.com/cachix/stamina.hs/actions/workflows/ci.yml/badge.svg)
 
 A retry Haskell library for humans:
 
 - **Exponential backoff** with **jitter** between retries.
 - Limit the **attempts** of retries and **total** time.
-- `Stamina.HTTP` for retrying retriable `Network.HTTP.Client` exceptions.
-- Introspectable retry state for logging using `RetryStatus`, including the exception that occured.
-- Support resetting the retry state when the action is long-running and an attempt works.
+- `Stamina.HTTP` for retrying retriable `Network.HTTP.Client` exceptions respecting `Retry-After` headers.
+- Introspectable retry state for logging using `RetryStatus`, including the last exception that occurred.
+- Support resetting the retry state when the action is long-running with an attempt that works.
 
 ## API
 
-- `RetryAction`
-- `RetryStatus`
-- `defaults`
-- `retry`
-- `retryOnExceptions`
+## Basics
 
-## Example
+- `Stamina.defaults :: (MonadIO m) => m RetrySettings`
+- `Stamina.RetryStatus = RetryStatus { attempts :: Int, delay :: NominalDiffTime, totalDelay :: NominalDiffTime, resetInitial :: IO (), lastException :: Maybe SomeException }`
+- `Stamina.retry :: (MonadCatch m, MonadIO m) => RetrySettings -> (RetryStatus -> m a) -> m a`
+
+## Exceptions
+
+- `Stamina.RetryAction = RaiseException | Retry | RetryDelay NominalDiffTime | RetryTime UTCTime`
+- `Stamina.retryFor :: (MonadCatch m, MonadIO m, Exception exc) => RetrySettings -> (exc -> m RetryAction) -> (RetryStatus -> m a) -> m a`
+
+## HTTP
+
+- `Stamina.HTPP.retry :: (MonadIO m, MonadCatch m) => Stamina.RetrySettings -> (Stamina.RetryStatus -> m a) -> m a`
+
+## Basic example
 
 ```haskell
 import qualified Stamina
@@ -45,8 +54,6 @@ go2 = do
     Stamina.retryFor defaults handler $ \retryStatus -> do
         throwM $ userError "nope"
 ```
-
-
 
 ## Development
 
