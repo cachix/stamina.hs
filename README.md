@@ -36,12 +36,12 @@ go = do
 ```haskell
 
 isDoesNotExistError :: IOError -> Stamina.RetryAction
-isDoesNotExistError _ = Stamina.Retry
+isDoesNotExistError _ = return Stamina.Retry
 
 go2 :: IO ()
 go2 = do 
     defaults <- Stamina.defaults
-    Stamina.retryOnExceptions defaults (return . isDoesNotExistError) $ \retryStatus -> do
+    Stamina.retryOnExceptions defaults isDoesNotExistError $ \retryStatus -> do
         throwM $ userError "nope"
 ```
 
