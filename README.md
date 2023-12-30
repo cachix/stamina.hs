@@ -6,9 +6,9 @@ A retry Haskell library for humans:
 
 - **Exponential backoff** with **jitter** between retries.
 - Limit the **attempts** of retries and **total** time.
-- `Stamina.HTTP` for retrying retriable `Network.HTTP.Client` exceptions respecting `Retry-After` headers.
-- Introspectable retry state for logging using `RetryStatus`, including the last exception that occurred.
-- Support resetting the retry state when the action is long-running with an attempt that works.
+- **Stamina.HTTP** for retrying retriable [Network.HTTP.Client](https://hackage.haskell.org/package/http-client) exceptions respecting `Retry-After` headers.
+- Introspectable retry state for logging using **RetryStatus**, including the last exception that occurred.
+- Support **resetting the retry state** when for **long-running tasks** with an attempt that works.
 
 ## API
 
