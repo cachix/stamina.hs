@@ -14,7 +14,7 @@ module Stamina
   )
 where
 
-import Control.Concurrent (newMVar, putMVar)
+import Control.Concurrent (isEmptyMVar, newMVar, tryPutMVar)
 import Control.Exception (Exception (..), SomeAsyncException (SomeAsyncException), SomeException, throwIO)
 import Control.Monad (void)
 import Control.Monad.Catch (MonadCatch, throwM, try)
@@ -44,25 +44,23 @@ data RetryStatus = RetryStatus
     lastException :: Maybe SomeException -- The last exception that was thrown.
   }
 
-defaults :: (MonadIO m) => m RetrySettings
-defaults = do
-  resetMVar <- liftIO $ newMVar ()
-  return $
-    RetrySettings
-      { initialRetryStatus =
-          RetryStatus
-            { attempts = 0,
-              delay = 0,
-              totalDelay = 0,
-              resetInitial = void $ putMVar resetMVar (),
-              lastException = Nothing
-            },
-        maxAttempts = Just 10,
-        maxTime = Just $ secondsToNominalDiffTime 60,
-        backoffMaxRetryDelay = 5.0,
-        backoffJitter = 1.0,
-        backoffExpBase = 2.0
-      }
+defaults :: RetrySettings
+defaults =
+  RetrySettings
+    { initialRetryStatus =
+        RetryStatus
+          { attempts = 0,
+            delay = 0,
+            totalDelay = 0,
+            resetInitial = return (),
+            lastException = Nothing
+          },
+      maxAttempts = Just 10,
+      maxTime = Just $ secondsToNominalDiffTime 60,
+      backoffMaxRetryDelay = 5.0,
+      backoffJitter = 1.0,
+      backoffExpBase = 2.0
+    }
 
 data RetryAction
   = RaiseException -- Propagate the exception.
@@ -88,7 +86,6 @@ retry settings = retryFor settings skipAsyncExceptions
       Just (SomeAsyncException _) -> return RaiseException
       Nothing -> return Retry
 
--- TODO: implement reset
 -- Same as retry, but only retry the given exceptions.
 retryFor ::
   (Exception exc, MonadIO m, MonadCatch m) =>
@@ -96,26 +93,34 @@ retryFor ::
   (exc -> m RetryAction) ->
   (RetryStatus -> m a) ->
   m a
-retryFor settings handler action =
-  go $ initialRetryStatus settings
+retryFor settings handler action = initialize >>= go
   where
+    initialize = do
+      resetMVar <- liftIO $ newMVar ()
+      let retryStatus = (initialRetryStatus settings) {resetInitial = void $ tryPutMVar resetMVar ()}
+      return (retryStatus, resetMVar)
     -- go :: (MonadCatch m, MonadIO m) => RetryStatus -> m a
-    go retryStatus = do
+    go (retryStatus, currentResetMVar) = do
       result <- try $ action retryStatus
       case result of
         Right out -> return out
         Left exception -> do
+          (newRetryStatus, newResetMVar) <- do
+            isEmpty <- liftIO $ isEmptyMVar currentResetMVar
+            if isEmpty
+              then return (retryStatus, currentResetMVar)
+              else initialize
           exceptionAction <- handler exception
-          case exceptionAction of
+          delay_ <- case exceptionAction of
             RaiseException -> throwM exception
-            Retry -> do
-              delay_ <- liftIO $ increaseDelay retryStatus
-              maybeAttempt exception retryStatus delay_
-            RetryDelay delay_ -> do
-              maybeAttempt exception retryStatus delay_
-            RetryTime time -> do
-              delay_ <- liftIO $ diffUTCTime time <$> getCurrentTime
-              maybeAttempt exception retryStatus delay_
+            Retry -> liftIO $ increaseDelay newRetryStatus
+            RetryDelay delay_ -> return delay_
+            RetryTime time -> liftIO $ diffUTCTime time <$> getCurrentTime
+          let RetrySettings {maxTime, maxAttempts} = settings
+          if (isJust maxTime && Just (totalDelay retryStatus + delay_) > maxTime)
+            || (isJust maxAttempts && Just (attempts retryStatus + 1) > maxAttempts)
+            then throwM exception
+            else go (updateRetryStatus retryStatus delay_ $ toException exception, newResetMVar)
 
     updateRetryStatus :: RetryStatus -> NominalDiffTime -> SomeException -> RetryStatus
     updateRetryStatus status delay_ exception =
@@ -132,14 +137,6 @@ retryFor settings handler action =
       let RetrySettings {backoffMaxRetryDelay, backoffJitter, backoffExpBase} = settings
       jitter <- randomRIO (0, backoffJitter)
       return $ min backoffMaxRetryDelay $ secondsToNominalDiffTime $ realToFrac $ backoffExpBase ** (fromIntegral attempts - 1) + jitter
-
-    -- maybeAttempt :: (Exception exc, MonadCatch m, MonadIO m) => exc -> RetryStatus -> DiffTime -> m a
-    maybeAttempt exception retryStatus delay_ = do
-      let RetrySettings {maxTime, maxAttempts} = settings
-      if (isJust maxTime && Just (totalDelay retryStatus + delay_) > maxTime)
-        || (isJust maxAttempts && Just (attempts retryStatus + 1) > maxAttempts)
-        then throwM exception
-        else go $ updateRetryStatus retryStatus delay_ $ toException exception
 
 -- | Escalate an Either to an exception by converting the Left value to an exception.
 escalateWith :: (Exception exc) => (err -> exc) -> Either err a -> IO a

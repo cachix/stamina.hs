@@ -35,10 +35,8 @@ import Control.Monad.Catch (throwM)
 import Control.Monad.IO.Class (MonadIO)
 
 go :: IO ()
-go = do 
-    defaults <- Stamina.defaults
-    Stamina.retry defaults $ \retryStatus -> do
-        throwM $ userError "nope"
+go = Stamina.retry Stamina.defaults $ \retryStatus -> do
+  throwM $ userError "nope"
 ```
 
 ## Example to catch specific exceptions
@@ -49,10 +47,8 @@ handler :: (MonadIO m) => IOError -> m Stamina.RetryAction
 handler _ = return Stamina.Retry
 
 go2 :: IO ()
-go2 = do 
-    defaults <- Stamina.defaults
-    Stamina.retryFor defaults handler $ \retryStatus -> do
-        throwM $ userError "nope"
+go2 = Stamina.retryFor Stamina.defaults handler $ \retryStatus -> do
+  throwM $ userError "nope"
 ```
 
 ## Development
