@@ -16,7 +16,7 @@ import Text.Read qualified as ReadPrec
 --
 -- Retries a subset of HTTP exceptions and overrides the delay with the Retry-After header if present.
 retry :: (MonadIO m, MonadCatch m) => Stamina.RetrySettings -> (Stamina.RetryStatus -> m a) -> m a
-retry settings = Stamina.retryOnExceptions settings handler
+retry settings = Stamina.retryFor settings handler
 
 handler :: (MonadIO m) => SomeException -> m Stamina.RetryAction
 handler =

@@ -1,7 +1,7 @@
 module Stamina
   ( -- functions
     retry,
-    retryOnExceptions,
+    retryFor,
     -- types
     RetrySettings (..),
     defaults,
@@ -40,7 +40,7 @@ data RetryStatus = RetryStatus
   { attempts :: Int, -- Number of retry attempts so far.
     delay :: NominalDiffTime, -- Delay before the next retry.
     totalDelay :: NominalDiffTime, -- Total delay so far.
-    reset :: IO (), -- Reset the retry status to the initial state.
+    resetInitial :: IO (), -- Reset the retry status to the initial state.
     lastException :: Maybe SomeException -- The last exception that was thrown.
   }
 
@@ -54,7 +54,7 @@ defaults = do
             { attempts = 0,
               delay = 0,
               totalDelay = 0,
-              reset = void $ putMVar resetMVar (),
+              resetInitial = void $ putMVar resetMVar (),
               lastException = Nothing
             },
         maxAttempts = Just 10,
@@ -81,7 +81,7 @@ data RetryAction
 
 -- If all retries fail, the last exception is let through.
 retry :: (MonadCatch m, MonadIO m) => RetrySettings -> (RetryStatus -> m a) -> m a
-retry settings = retryOnExceptions settings skipAsyncExceptions
+retry settings = retryFor settings skipAsyncExceptions
   where
     -- skipAsyncExceptions :: SomeException -> m RetryAction
     skipAsyncExceptions exc = case fromException exc of
@@ -90,13 +90,13 @@ retry settings = retryOnExceptions settings skipAsyncExceptions
 
 -- TODO: implement reset
 -- Same as retry, but only retry the given exceptions.
-retryOnExceptions ::
+retryFor ::
   (Exception exc, MonadIO m, MonadCatch m) =>
   RetrySettings ->
   (exc -> m RetryAction) ->
   (RetryStatus -> m a) ->
   m a
-retryOnExceptions settings handler action =
+retryFor settings handler action =
   go $ initialRetryStatus settings
   where
     -- go :: (MonadCatch m, MonadIO m) => RetryStatus -> m a
@@ -114,9 +114,7 @@ retryOnExceptions settings handler action =
             RetryDelay delay_ -> do
               maybeAttempt exception retryStatus delay_
             RetryTime time -> do
-              delay_ <- liftIO $ do
-                now <- getCurrentTime
-                return $ diffUTCTime time now
+              delay_ <- liftIO $ diffUTCTime time <$> getCurrentTime
               maybeAttempt exception retryStatus delay_
 
     updateRetryStatus :: RetryStatus -> NominalDiffTime -> SomeException -> RetryStatus

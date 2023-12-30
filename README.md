@@ -42,7 +42,7 @@ handler _ = return Stamina.Retry
 go2 :: IO ()
 go2 = do 
     defaults <- Stamina.defaults
-    Stamina.retryOnExceptions defaults handler $ \retryStatus -> do
+    Stamina.retryFor defaults handler $ \retryStatus -> do
         throwM $ userError "nope"
 ```
 
