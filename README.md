@@ -7,7 +7,7 @@ A retry Haskell library for humans:
 - **Exponential backoff** with **jitter** between retries.
 - Limit the **attempts** of retries and **total** time.
 - `Stamina.HTTP` for retrying retriable `Network.HTTP.Client` exceptions.
-- Introspectable retry state for logging using `RetryStatus`, including the exception that occoured.
+- Introspectable retry state for logging using `RetryStatus`, including the exception that occured.
 - Support resetting the retry state when the action is long-running and an attempt works.
 
 ## API
@@ -41,7 +41,7 @@ isDoesNotExistError _ = Stamina.Retry
 go2 :: IO ()
 go2 = do 
     defaults <- Stamina.defaults
-    Stamina.retryOnExceptions defaults isDoesNotExistError $ \retryStatus -> do
+    Stamina.retryOnExceptions defaults (return . isDoesNotExistError) $ \retryStatus -> do
         throwM $ userError "nope"
 ```
 

@@ -20,15 +20,15 @@ import Control.Monad (void)
 import Control.Monad.Catch (MonadCatch, throwM, try)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Data.Maybe (isJust)
-import Data.Time.Clock (DiffTime, secondsToDiffTime)
+import Data.Time.Clock (NominalDiffTime, UTCTime, diffUTCTime, getCurrentTime, secondsToNominalDiffTime)
 import System.Random (randomRIO)
 
 -- | Settings for the retry functions.
 data RetrySettings = RetrySettings
   { initialRetryStatus :: RetryStatus, -- Initial status of the retry, useful to override when resuming a retry
     maxAttempts :: Maybe Int, -- Maximum number of attempts. Can be combined with a timeout. Default to 10.
-    maxTime :: Maybe DiffTime, -- Maximum time for all retries. Can be combined with attempts. Default to 60s.
-    backoffMaxRetryDelay :: DiffTime, -- Maximum backoff between retries at any time. Default to 5s.
+    maxTime :: Maybe NominalDiffTime, -- Maximum time for all retries. Can be combined with attempts. Default to 60s.
+    backoffMaxRetryDelay :: NominalDiffTime, -- Maximum backoff between retries at any time. Default to 5s.
     backoffJitter :: Double, -- Maximum jitter that is added to retry back-off delays (the actual jitter added is a random number between 0 and backoffJitter). Defaults to 1.0.
     backoffExpBase :: Double -- The exponential base used to compute the retry backoff. Defaults to 2.0.
   }
@@ -38,8 +38,8 @@ data RetrySettings = RetrySettings
 -- All fields will be zero if no retries have been attempted yet.
 data RetryStatus = RetryStatus
   { attempts :: Int, -- Number of retry attempts so far.
-    delay :: DiffTime, -- Delay before the next retry.
-    totalDelay :: DiffTime, -- Total delay so far.
+    delay :: NominalDiffTime, -- Delay before the next retry.
+    totalDelay :: NominalDiffTime, -- Total delay so far.
     reset :: IO (), -- Reset the retry status to the initial state.
     lastException :: Maybe SomeException -- The last exception that was thrown.
   }
@@ -58,7 +58,7 @@ defaults = do
               lastException = Nothing
             },
         maxAttempts = Just 10,
-        maxTime = Just $ secondsToDiffTime 60,
+        maxTime = Just $ secondsToNominalDiffTime 60,
         backoffMaxRetryDelay = 5.0,
         backoffJitter = 1.0,
         backoffExpBase = 2.0
@@ -67,10 +67,11 @@ defaults = do
 data RetryAction
   = RaiseException -- Propagate the exception.
   | Retry -- Retry with the delay according to the settings.
-  | RetryDelay DiffTime -- Retry after the given delay.
+  | RetryDelay NominalDiffTime -- Retry after the given delay.
+  | RetryTime UTCTime -- Retry after the given time.
 
 -- | Retry on all sync exceptions, async exceptions will still be thrown.
---
+
 -- The backoff delays between retries grow exponentially plus a random jitter.
 -- The backoff for retry attempt number _attempt_ is computed as:
 --
@@ -82,17 +83,17 @@ data RetryAction
 retry :: (MonadCatch m, MonadIO m) => RetrySettings -> (RetryStatus -> m a) -> m a
 retry settings = retryOnExceptions settings skipAsyncExceptions
   where
-    skipAsyncExceptions :: SomeException -> RetryAction
+    -- skipAsyncExceptions :: SomeException -> m RetryAction
     skipAsyncExceptions exc = case fromException exc of
-      Just (SomeAsyncException _) -> RaiseException
-      Nothing -> Retry
+      Just (SomeAsyncException _) -> return RaiseException
+      Nothing -> return Retry
 
 -- TODO: implement reset
 -- Same as retry, but only retry the given exceptions.
 retryOnExceptions ::
   (Exception exc, MonadIO m, MonadCatch m) =>
   RetrySettings ->
-  (exc -> RetryAction) ->
+  (exc -> m RetryAction) ->
   (RetryStatus -> m a) ->
   m a
 retryOnExceptions settings handler action =
@@ -103,15 +104,22 @@ retryOnExceptions settings handler action =
       result <- try $ action retryStatus
       case result of
         Right out -> return out
-        Left exception -> case handler exception of
-          RaiseException -> throwM exception
-          Retry -> do
-            delay_ <- liftIO $ increaseDelay retryStatus
-            maybeAttempt exception retryStatus delay_
-          RetryDelay delay_ -> do
-            maybeAttempt exception retryStatus delay_
+        Left exception -> do
+          exceptionAction <- handler exception
+          case exceptionAction of
+            RaiseException -> throwM exception
+            Retry -> do
+              delay_ <- liftIO $ increaseDelay retryStatus
+              maybeAttempt exception retryStatus delay_
+            RetryDelay delay_ -> do
+              maybeAttempt exception retryStatus delay_
+            RetryTime time -> do
+              delay_ <- liftIO $ do
+                now <- getCurrentTime
+                return $ diffUTCTime time now
+              maybeAttempt exception retryStatus delay_
 
-    updateRetryStatus :: RetryStatus -> DiffTime -> SomeException -> RetryStatus
+    updateRetryStatus :: RetryStatus -> NominalDiffTime -> SomeException -> RetryStatus
     updateRetryStatus status delay_ exception =
       status
         { attempts = attempts status + 1,
@@ -120,12 +128,12 @@ retryOnExceptions settings handler action =
           lastException = Just exception
         }
 
-    increaseDelay :: MonadIO m => RetryStatus -> m DiffTime
+    increaseDelay :: (MonadIO m) => RetryStatus -> m NominalDiffTime
     increaseDelay retryStatus = do
       let RetryStatus {attempts} = retryStatus
       let RetrySettings {backoffMaxRetryDelay, backoffJitter, backoffExpBase} = settings
       jitter <- randomRIO (0, backoffJitter)
-      return $ min backoffMaxRetryDelay $ secondsToDiffTime $ floor $ backoffExpBase ** (fromIntegral attempts - 1) + jitter
+      return $ min backoffMaxRetryDelay $ secondsToNominalDiffTime $ realToFrac $ backoffExpBase ** (fromIntegral attempts - 1) + jitter
 
     -- maybeAttempt :: (Exception exc, MonadCatch m, MonadIO m) => exc -> RetryStatus -> DiffTime -> m a
     maybeAttempt exception retryStatus delay_ = do
