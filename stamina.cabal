@@ -31,7 +31,12 @@ test-suite stamina-test
     main-is:          Main.hs
     build-depends:
         base,
-        stamina
+        stamina,
+        hspec,
+        mtl,
+        exceptions,
+        time,
+        http-client
 
 -- typechecks README during CI but doesn't run it
 executable readme
