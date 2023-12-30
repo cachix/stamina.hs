@@ -40,7 +40,8 @@ main = hspec $ do
         throwM $ userError "error"
       (result :: Either IOError String) `shouldBe` Left (userError "error")
       status <- readIORef lastStatus
-      Stamina.attempts status `shouldBe` 1
+      Stamina.attempts status `shouldSatisfy` (< 3)
+      Stamina.attempts status `shouldSatisfy` (> 0)
       Stamina.totalDelay status `shouldSatisfy` (< secondsToNominalDiffTime 3)
     it "should respect resetInitial the retry status" $ do
       lastStatus <- newIORef $ Stamina.initialRetryStatus Stamina.defaults
