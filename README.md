@@ -23,6 +23,7 @@ A retry Haskell library for humans:
 ```haskell
 import qualified Stamina
 import Control.Monad.Catch (throwM)
+import Control.Monad.IO.Class (MonadIO)
 
 go :: IO ()
 go = do 
@@ -35,13 +36,13 @@ go = do
 
 ```haskell
 
-isDoesNotExistError :: IOError -> Stamina.RetryAction
-isDoesNotExistError _ = return Stamina.Retry
+handler :: (MonadIO m) => IOError -> m Stamina.RetryAction
+handler _ = return Stamina.Retry
 
 go2 :: IO ()
 go2 = do 
     defaults <- Stamina.defaults
-    Stamina.retryOnExceptions defaults isDoesNotExistError $ \retryStatus -> do
+    Stamina.retryOnExceptions defaults handler $ \retryStatus -> do
         throwM $ userError "nope"
 ```
 
