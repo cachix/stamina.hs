@@ -7,56 +7,45 @@ A retry Haskell library for humans:
 - **Exponential backoff** with **jitter** between retries.
 - Limit the **attempts** of retries and **total** time.
 - `Stamina.HTTP` for retrying retriable `Network.HTTP.Client` exceptions.
-- Introspectable retry state for logging using `RetryStatus`.
+- Introspectable retry state for logging using `RetryStatus`, including the exception that occoured.
 - Support resetting the retry state when the action is long-running and an attempt works.
 
 ## API
 
-```haskell
-import Control.Exception (Exception, Handler)
-import Control.Monad.IO.Class (MonadIO)
-import Data.Time.Clock (DiffTime)
-
-defaults :: RetrySettings
-
-data RetryStatus = RetryStatus
-  { attempts :: Int,
-    delay :: DiffTime,
-    totalDelay :: DiffTime,
-    reset :: IO ()
-  }
-
--- Retry on all sync exceptions
-retry :: MonadIO m 
-      => RetrySettings 
-      -> (RetryStatus -> m a)
-      -> m a
-
--- Retry on specific exceptions
-retryOnExceptions :: (Exception e, MonadIO m) 
-                  => RetrySettings 
-                  -> [Handler RetryAction] 
-                  -> (RetryStatus -> m a)
-                  -> m a
-
-data RetryAction = 
-   Skip -- Propagate the exception.
- | Retry  -- Retry with the delay according to the settings.
- | RetryDelay DiffTime -- Retry after the given delay.
-```
+- `RetryAction`
+- `RetryStatus`
+- `defaults`
+- `retry`
+- `retryOnExceptions`
 
 ## Example
 
 ```haskell
-
 import qualified Stamina
+import Control.Monad.Catch (throwM)
 
-main :: IO ()
-main = do
-    Stamina.retry Stamina.defaults $ \retryStatus -> do
-        ... monadic logic that raises exceptions
-
+go :: IO ()
+go = do 
+    defaults <- Stamina.defaults
+    Stamina.retry defaults $ \retryStatus -> do
+        throwM $ userError "nope"
 ```
+
+## Example to catch specific exceptions
+
+```haskell
+
+isDoesNotExistError :: IOError -> Stamina.RetryAction
+isDoesNotExistError _ = Stamina.Retry
+
+go2 :: IO ()
+go2 = do 
+    defaults <- Stamina.defaults
+    Stamina.retryOnExceptions defaults isDoesNotExistError $ \retryStatus -> do
+        throwM $ userError "nope"
+```
+
+
 
 ## Development
 
@@ -70,3 +59,11 @@ main = do
 
 - Heavily inspired by [stamina for Python](https://stamina.hynek.me/en/stable/tutorial.html#retries).
 - [retry](https://github.com/Soostone/retry) as case study for what needs to be supported.
+
+<details>
+  <summary>Test setup</summary>
+  
+  ```haskell
+  main = undefined
+  ```
+</details>

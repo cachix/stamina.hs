@@ -1,12 +1,13 @@
 module Stamina.HTTP (retry) where
 
-import Control.Exception (Handler)
+import Control.Exception (SomeException)
+import Control.Monad.Catch (MonadCatch)
 import Control.Monad.IO.Class (MonadIO)
 import Network.HTTP.Client qualified as HTTP
 import Stamina qualified
 
-handlers :: [Handler Stamina.RetryAction]
-handlers = undefined
+handler :: SomeException -> Stamina.RetryAction
+handler = undefined
 
-retry :: MonadIO m => Stamina.RetrySettings -> (Stamina.RetryStatus -> m a) -> m a
-retry settings action = Stamina.retryOnExceptions settings handlers action
+retry :: (MonadIO m, MonadCatch m) => Stamina.RetrySettings -> (Stamina.RetryStatus -> m a) -> m a
+retry settings = Stamina.retryOnExceptions settings handler
