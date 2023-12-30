@@ -20,7 +20,12 @@ library
     exposed-modules:  
        Stamina
      , Stamina.HTTP
-    build-depends:    base, http-client, http-types, time, exceptions, random
+    build-depends:    base >= 4.2 && < 5,
+                      http-client,
+                      http-types,
+                      time,
+                      exceptions,
+                      random
     hs-source-dirs:   src
 
 test-suite stamina-test
