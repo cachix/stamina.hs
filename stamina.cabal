@@ -9,7 +9,9 @@ author:             Domen Kožar
 maintainer:         domen@cachix.org
 category:           Control
 build-type:         Simple
-extra-doc-files:    CHANGELOG.md
+extra-doc-files:
+  CHANGELOG.md
+  README.md
 
 common warnings
     ghc-options: -Wall
