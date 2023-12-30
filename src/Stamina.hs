@@ -25,23 +25,34 @@ import System.Random (randomRIO)
 
 -- | Settings for the retry functions.
 data RetrySettings = RetrySettings
-  { initialRetryStatus :: RetryStatus, -- Initial status of the retry, useful to override when resuming a retry
-    maxAttempts :: Maybe Int, -- Maximum number of attempts. Can be combined with a timeout. Default to 10.
-    maxTime :: Maybe NominalDiffTime, -- Maximum time for all retries. Can be combined with attempts. Default to 60s.
-    backoffMaxRetryDelay :: Maybe NominalDiffTime, -- Maximum backoff between retries at any time. Default to 60s.
-    backoffJitter :: Double, -- Maximum jitter that is added to retry back-off delays (the actual jitter added is a random number between 0 and backoffJitter). Defaults to 1.0.
-    backoffExpBase :: Double -- The exponential base used to compute the retry backoff. Defaults to 2.0.
+  { -- | Initial status of the retry, useful to override when resuming a retry
+    initialRetryStatus :: RetryStatus,
+    -- | Maximum number of attempts. Can be combined with a timeout. Default to 10.
+    maxAttempts :: Maybe Int,
+    -- | Maximum time for all retries. Can be combined with attempts. Default to 60s.
+    maxTime :: Maybe NominalDiffTime,
+    -- | Maximum backoff between retries at any time. Default to 60s.
+    backoffMaxRetryDelay :: Maybe NominalDiffTime,
+    -- | Maximum jitter that is added to retry back-off delays (the actual jitter added is a random number between 0 and backoffJitter). Defaults to 1.0.
+    backoffJitter :: Double,
+    -- | The exponential base used to compute the retry backoff. Defaults to 2.0.
+    backoffExpBase :: Double
   }
 
 -- | Tracks the status of a retry
 --
 -- All fields will be zero if no retries have been attempted yet.
 data RetryStatus = RetryStatus
-  { attempts :: Int, -- Number of retry attempts so far.
-    delay :: NominalDiffTime, -- Delay before the next retry.
-    totalDelay :: NominalDiffTime, -- Total delay so far.
-    resetInitial :: IO (), -- Reset the retry status to the initial state.
-    lastException :: Maybe SomeException -- The last exception that was thrown.
+  { -- | Number of retry attempts so far.
+    attempts :: Int,
+    -- | Delay before the next retry.
+    delay :: NominalDiffTime,
+    -- | Total delay so far.
+    totalDelay :: NominalDiffTime,
+    -- | Reset the retry status to the initial state.
+    resetInitial :: IO (),
+    -- | The last exception that was thrown.
+    lastException :: Maybe SomeException
   }
 
 defaults :: RetrySettings
@@ -70,7 +81,7 @@ data RetryAction
   deriving (Show, Eq)
 
 -- | Retry on all sync exceptions, async exceptions will still be thrown.
-
+--
 -- The backoff delays between retries grow exponentially plus a random jitter.
 -- The backoff for retry attempt number _attempt_ is computed as:
 --
