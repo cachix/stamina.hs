@@ -36,7 +36,7 @@ handler =
 
     -- https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Retry-After
     lookupRetryAfter :: HTTP.Response body -> Maybe RetryAfterHeader
-    lookupRetryAfter = readMaybe . show . snd . head . filter ((== hRetryAfter) . fst) . HTTP.responseHeaders
+    lookupRetryAfter body = lookup hRetryAfter (HTTP.responseHeaders body) >>= readMaybe . show
 
 data RetryAfterHeader
   = RetryAfterDate UTCTime
