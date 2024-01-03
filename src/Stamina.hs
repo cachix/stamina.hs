@@ -85,15 +85,19 @@ data RetryAction
 -- The backoff delays between retries grow exponentially plus a random jitter.
 -- The backoff for retry attempt number _attempt_ is computed as:
 --
+-- @
 --    backoffExpBase ** (attempt - 1) + random(0, backoffJitter)
+-- @
 --
 -- With the default values, the backoff for the first 5 attempts will be:
 --
+-- @
 --    2 ** 0 + random(0, 1) = 1 + random(0, 1)
 --    2 ** 1 + random(0, 1) = 2 + random(0, 1)
 --    2 ** 2 + random(0, 1) = 4 + random(0, 1)
 --    2 ** 3 + random(0, 1) = 8 + random(0, 1)
 --    2 ** 4 + random(0, 1) = 16 + random(0, 1)
+-- @
 --
 -- If all retries fail, the last exception is let through.
 retry :: (MonadCatch m, MonadIO m) => RetrySettings -> (RetryStatus -> m a) -> m a
