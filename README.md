@@ -25,7 +25,7 @@ A retry Haskell library for humans:
 
 ## HTTP
 
-- `Stamina.HTPP.retry :: (MonadIO m, MonadCatch m) => Stamina.RetrySettings -> (Stamina.RetryStatus -> m a) -> m a`
+- `Stamina.HTTP.retry :: (MonadIO m, MonadCatch m) => Stamina.RetrySettings -> (Stamina.RetryStatus -> m a) -> m a`
 
 ## Basic example
 
