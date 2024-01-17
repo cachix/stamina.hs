@@ -1,3 +1,5 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+
 module Stamina
   ( -- functions
     retry,
@@ -14,7 +16,7 @@ module Stamina
   )
 where
 
-import Control.Concurrent (isEmptyMVar, newEmptyMVar, threadDelay, tryPutMVar)
+import Control.Concurrent (MVar, isEmptyMVar, newEmptyMVar, threadDelay, tryPutMVar)
 import Control.Exception (Exception (..), SomeAsyncException (SomeAsyncException), SomeException, throwIO)
 import Control.Monad (void)
 import Control.Monad.Catch (MonadCatch, throwM, try)
@@ -100,16 +102,17 @@ data RetryAction
 -- @
 --
 -- If all retries fail, the last exception is let through.
-retry :: (MonadCatch m, MonadIO m) => RetrySettings -> (RetryStatus -> m a) -> m a
+retry :: forall m a. (MonadCatch m, MonadIO m) => RetrySettings -> (RetryStatus -> m a) -> m a
 retry settings = retryFor settings skipAsyncExceptions
   where
-    -- skipAsyncExceptions :: SomeException -> m RetryAction
+    skipAsyncExceptions :: SomeException -> m RetryAction
     skipAsyncExceptions exc = case fromException exc of
       Just (SomeAsyncException _) -> return RaiseException
       Nothing -> return Retry
 
 -- Same as retry, but only retry the given exceptions.
 retryFor ::
+  forall m exc a.
   (Exception exc, MonadIO m, MonadCatch m) =>
   RetrySettings ->
   (exc -> m RetryAction) ->
@@ -121,7 +124,7 @@ retryFor settings handler action = initialize >>= go
       resetMVar <- liftIO $ newEmptyMVar
       let retryStatus = (initialRetryStatus settings) {resetInitial = void $ tryPutMVar resetMVar ()}
       return (retryStatus, resetMVar)
-    -- go :: (MonadCatch m, MonadIO m) => RetryStatus -> m a
+    go :: (MonadCatch m, MonadIO m) => (RetryStatus, MVar ()) -> m a
     go (retryStatus, currentResetMVar) = do
       result <- try $ action retryStatus
       case result of
@@ -135,7 +138,7 @@ retryFor settings handler action = initialize >>= go
           exceptionAction <- handler exception
           delay_ <- case exceptionAction of
             RaiseException -> throwM exception
-            Retry -> liftIO $ increaseDelay newRetryStatus
+            Retry -> increaseDelay newRetryStatus
             RetryDelay delay_ -> return delay_
             RetryTime time -> liftIO $ diffUTCTime time <$> getCurrentTime
           let RetrySettings {maxTime, maxAttempts} = settings
