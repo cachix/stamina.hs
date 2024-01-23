@@ -7,6 +7,7 @@ module Stamina
     -- types
     RetrySettings (..),
     defaults,
+    indefiniteDefaults,
     RetryAction (..),
     RetryStatus (..),
     -- raising exceptions
@@ -73,6 +74,13 @@ defaults =
       backoffMaxRetryDelay = Just $ secondsToNominalDiffTime 60.0,
       backoffJitter = 1.0,
       backoffExpBase = 2.0
+    }
+
+indefiniteDefaults :: RetrySettings
+indefiniteDefaults =
+  defaults
+    { maxTime = Nothing,
+      maxAttempts = Nothing
     }
 
 data RetryAction
