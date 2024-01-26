@@ -1,5 +1,10 @@
 # Revision history for stamina
 
+## 0.1.0.3 (2024-01-26)
+
+* Fix typo
+* Add Stamina.indefiniteDefaults
+
 ## 0.1.0.2 (2024-01-03)
 
 * Fix haddock
