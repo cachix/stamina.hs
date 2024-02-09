@@ -15,6 +15,7 @@ jobs:
         with:
           prefix: null
       - run: cabal sdist
+      - run: cabal update
       - run: cabal haddock --haddock-for-hackage --enable-documentation
       - uses: haskell-actions/hackage-publish@v1.1
         with:
